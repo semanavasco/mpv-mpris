@@ -44,6 +44,11 @@ static const char *introspection_xml =
     "    <method name=\"SetSubtitleID\">\n"
     "      <arg type=\"i\" name=\"ID\" direction=\"in\"/>\n"
     "    </method>\n"
+    "    <method name=\"SetMute\">\n"
+    "      <arg type=\"b\" name=\"Muted\" direction=\"in\"/>\n"
+    "    </method>\n"
+    "    <method name=\"ToggleMute\">\n"
+    "    </method>\n"
     "    <method name=\"SetPosition\">\n"
     "      <arg type=\"o\" name=\"TrackId\" direction=\"in\"/>\n"
     "      <arg type=\"x\" name=\"Offset\" direction=\"in\"/>\n"
@@ -60,6 +65,7 @@ static const char *introspection_xml =
     "    <property name=\"Shuffle\" type=\"b\" access=\"readwrite\"/>\n"
     "    <property name=\"Metadata\" type=\"a{sv}\" access=\"read\"/>\n"
     "    <property name=\"Volume\" type=\"d\" access=\"readwrite\"/>\n"
+    "    <property name=\"Mute\" type=\"b\" access=\"readwrite\"/>\n"
     "    <property name=\"Position\" type=\"x\" access=\"read\"/>\n"
     "    <property name=\"MinimumRate\" type=\"d\" access=\"read\"/>\n"
     "    <property name=\"MaximumRate\" type=\"d\" access=\"read\"/>\n"
@@ -635,6 +641,18 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
     g_dbus_method_invocation_return_value(invocation, NULL);
 
     g_free(sid_str);
+  } else if (g_strcmp0(method_name, "SetMute") == 0) {
+    int muted;
+    g_variant_get(parameters, "(b)", &muted);
+
+    mpv_set_property(ud->mpv, "mute", MPV_FORMAT_FLAG, &muted);
+    g_dbus_method_invocation_return_value(invocation, NULL);
+  } else if (g_strcmp0(method_name, "ToggleMute") == 0) {
+    int muted = 0;
+    mpv_get_property(ud->mpv, "mute", MPV_FORMAT_FLAG, &muted);
+    muted = !muted;
+    mpv_set_property(ud->mpv, "mute", MPV_FORMAT_FLAG, &muted);
+    g_dbus_method_invocation_return_value(invocation, NULL);
   } else if (g_strcmp0(method_name, "OpenUri") == 0) {
     char *uri;
     g_variant_get(parameters, "(&s)", &uri);
@@ -684,6 +702,10 @@ get_property_player(G_GNUC_UNUSED GDBusConnection *connection, G_GNUC_UNUSED con
     volume /= 100;
     ret = g_variant_new_double(volume);
 
+  } else if (g_strcmp0(property_name, "Mute") == 0) {
+    int muted;
+    mpv_get_property(ud->mpv, "mute", MPV_FORMAT_FLAG, &muted);
+    ret = g_variant_new_boolean(muted);
   } else if (g_strcmp0(property_name, "Position") == 0) {
     double position_s;
     int64_t position_us;
@@ -759,6 +781,10 @@ static gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
     double volume = g_variant_get_double(value);
     volume *= 100;
     mpv_set_property(ud->mpv, "volume", MPV_FORMAT_DOUBLE, &volume);
+
+  } else if (g_strcmp0(property_name, "Mute") == 0) {
+    int muted = g_variant_get_boolean(value);
+    mpv_set_property(ud->mpv, "mute", MPV_FORMAT_FLAG, &muted);
 
   } else {
     g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_PROPERTY, "Cannot set property %s",
