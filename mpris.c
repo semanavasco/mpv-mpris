@@ -38,6 +38,9 @@ static const char *introspection_xml =
     "    <method name=\"Seek\">\n"
     "      <arg type=\"x\" name=\"Offset\" direction=\"in\"/>\n"
     "    </method>\n"
+    "    <method name=\"SetAudioID\">\n"
+    "      <arg type=\"i\" name=\"ID\" direction=\"in\"/>\n"
+    "    </method>\n"
     "    <method name=\"SetPosition\">\n"
     "      <arg type=\"o\" name=\"TrackId\" direction=\"in\"/>\n"
     "      <arg type=\"x\" name=\"Offset\" direction=\"in\"/>\n"
@@ -607,6 +610,17 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
 
     g_dbus_method_invocation_return_value(invocation, NULL);
 
+  } else if (g_strcmp0(method_name, "SetAudioID") == 0) {
+    int aid;
+    g_variant_get(parameters, "(i)", &aid);
+
+    char *aid_str = g_strdup_printf("%d", aid);
+    const char *cmd[] = {"set", "audio", aid_str, NULL};
+
+    mpv_command_async(ud->mpv, 0, cmd);
+    g_dbus_method_invocation_return_value(invocation, NULL);
+
+    g_free(aid_str);
   } else if (g_strcmp0(method_name, "OpenUri") == 0) {
     char *uri;
     g_variant_get(parameters, "(&s)", &uri);
