@@ -44,6 +44,9 @@ static const char *introspection_xml =
     "    <method name=\"SetSubtitleID\">\n"
     "      <arg type=\"i\" name=\"ID\" direction=\"in\"/>\n"
     "    </method>\n"
+    "    <method name=\"SetVolume\">\n"
+    "      <arg type=\"d\" name=\"\" direction=\"in\"/>\n"
+    "    </method>\n"
     "    <method name=\"SetMute\">\n"
     "      <arg type=\"b\" name=\"Muted\" direction=\"in\"/>\n"
     "    </method>\n"
@@ -641,6 +644,19 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
     g_dbus_method_invocation_return_value(invocation, NULL);
 
     g_free(sid_str);
+  } else if (g_strcmp0(method_name, "SetVolume") == 0) {
+    double volume;
+    g_variant_get(parameters, "(d)", &volume);
+
+    if (volume < 0.0)
+      volume = 0.0;
+    else if (volume > 1.0)
+      volume = 1.0;
+
+    double mpv_volume = volume * 100.0;
+    mpv_set_property(ud->mpv, "volume", MPV_FORMAT_DOUBLE, &mpv_volume);
+
+    g_dbus_method_invocation_return_value(invocation, NULL);
   } else if (g_strcmp0(method_name, "SetMute") == 0) {
     int muted;
     g_variant_get(parameters, "(b)", &muted);
