@@ -67,6 +67,8 @@ static const char *introspection_xml =
     "    <property name=\"Rate\" type=\"d\" access=\"readwrite\"/>\n"
     "    <property name=\"Shuffle\" type=\"b\" access=\"readwrite\"/>\n"
     "    <property name=\"Metadata\" type=\"a{sv}\" access=\"read\"/>\n"
+    "    <property name=\"AudioID\" type=\"i\" access=\"readwrite\"/>\n"
+    "    <property name=\"SubtitleID\" type=\"i\" access=\"readwrite\"/>\n"
     "    <property name=\"Volume\" type=\"d\" access=\"readwrite\"/>\n"
     "    <property name=\"Mute\" type=\"b\" access=\"readwrite\"/>\n"
     "    <property name=\"Position\" type=\"x\" access=\"read\"/>\n"
@@ -627,7 +629,7 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
     g_variant_get(parameters, "(i)", &aid);
 
     char *aid_str = g_strdup_printf("%d", aid);
-    const char *cmd[] = {"set", "audio", aid_str, NULL};
+    const char *cmd[] = {"set", "aid", aid_str, NULL};
 
     mpv_command_async(ud->mpv, 0, cmd);
     g_dbus_method_invocation_return_value(invocation, NULL);
@@ -638,7 +640,7 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
     g_variant_get(parameters, "(i)", &sid);
 
     char *sid_str = g_strdup_printf("%d", sid);
-    const char *cmd[] = {"set", "sub", sid_str, NULL};
+    const char *cmd[] = {"set", "sid", sid_str, NULL};
 
     mpv_command_async(ud->mpv, 0, cmd);
     g_dbus_method_invocation_return_value(invocation, NULL);
@@ -711,6 +713,16 @@ get_property_player(G_GNUC_UNUSED GDBusConnection *connection, G_GNUC_UNUSED con
     // Increase reference count to prevent it from being freed after returning
     g_variant_ref(ud->metadata);
     ret = ud->metadata;
+
+  } else if (g_strcmp0(property_name, "AudioID") == 0) {
+    int aid;
+    mpv_get_property(ud->mpv, "aid", MPV_FORMAT_INT64, &aid);
+    ret = g_variant_new_int64(aid);
+
+  } else if (g_strcmp0(property_name, "SubtitleID") == 0) {
+    int sid;
+    mpv_get_property(ud->mpv, "sid", MPV_FORMAT_INT64, &sid);
+    ret = g_variant_new_int64(sid);
 
   } else if (g_strcmp0(property_name, "Volume") == 0) {
     double volume;
