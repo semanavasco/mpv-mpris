@@ -39,10 +39,10 @@ static const char *introspection_xml =
     "      <arg type=\"x\" name=\"Offset\" direction=\"in\"/>\n"
     "    </method>\n"
     "    <method name=\"SetAudioID\">\n"
-    "      <arg type=\"i\" name=\"ID\" direction=\"in\"/>\n"
+    "      <arg type=\"s\" name=\"ID\" direction=\"in\"/>\n"
     "    </method>\n"
     "    <method name=\"SetSubtitleID\">\n"
-    "      <arg type=\"i\" name=\"ID\" direction=\"in\"/>\n"
+    "      <arg type=\"s\" name=\"ID\" direction=\"in\"/>\n"
     "    </method>\n"
     "    <method name=\"SetVolume\">\n"
     "      <arg type=\"d\" name=\"\" direction=\"in\"/>\n"
@@ -67,8 +67,8 @@ static const char *introspection_xml =
     "    <property name=\"Rate\" type=\"d\" access=\"readwrite\"/>\n"
     "    <property name=\"Shuffle\" type=\"b\" access=\"readwrite\"/>\n"
     "    <property name=\"Metadata\" type=\"a{sv}\" access=\"read\"/>\n"
-    "    <property name=\"AudioID\" type=\"i\" access=\"readwrite\"/>\n"
-    "    <property name=\"SubtitleID\" type=\"i\" access=\"readwrite\"/>\n"
+    "    <property name=\"AudioID\" type=\"s\" access=\"readwrite\"/>\n"
+    "    <property name=\"SubtitleID\" type=\"s\" access=\"readwrite\"/>\n"
     "    <property name=\"Volume\" type=\"d\" access=\"readwrite\"/>\n"
     "    <property name=\"Mute\" type=\"b\" access=\"readwrite\"/>\n"
     "    <property name=\"Position\" type=\"x\" access=\"read\"/>\n"
@@ -625,27 +625,21 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
     g_dbus_method_invocation_return_value(invocation, NULL);
 
   } else if (g_strcmp0(method_name, "SetAudioID") == 0) {
-    int aid;
-    g_variant_get(parameters, "(i)", &aid);
+    char *aid;
+    g_variant_get(parameters, "(s)", &aid);
 
-    char *aid_str = g_strdup_printf("%d", aid);
-    const char *cmd[] = {"set", "aid", aid_str, NULL};
+    const char *cmd[] = {"set", "aid", aid, NULL};
 
     mpv_command_async(ud->mpv, 0, cmd);
     g_dbus_method_invocation_return_value(invocation, NULL);
-
-    g_free(aid_str);
   } else if (g_strcmp0(method_name, "SetSubtitleID") == 0) {
-    int sid;
-    g_variant_get(parameters, "(i)", &sid);
+    char *sid;
+    g_variant_get(parameters, "(s)", &sid);
 
-    char *sid_str = g_strdup_printf("%d", sid);
-    const char *cmd[] = {"set", "sid", sid_str, NULL};
+    const char *cmd[] = {"set", "sid", sid, NULL};
 
     mpv_command_async(ud->mpv, 0, cmd);
     g_dbus_method_invocation_return_value(invocation, NULL);
-
-    g_free(sid_str);
   } else if (g_strcmp0(method_name, "SetVolume") == 0) {
     double volume;
     g_variant_get(parameters, "(d)", &volume);
@@ -715,14 +709,14 @@ get_property_player(G_GNUC_UNUSED GDBusConnection *connection, G_GNUC_UNUSED con
     ret = ud->metadata;
 
   } else if (g_strcmp0(property_name, "AudioID") == 0) {
-    int aid;
-    mpv_get_property(ud->mpv, "aid", MPV_FORMAT_INT64, &aid);
-    ret = g_variant_new_int64(aid);
+    char *aid;
+    mpv_get_property(ud->mpv, "aid", MPV_FORMAT_STRING, &aid);
+    ret = g_variant_new_string(aid);
 
   } else if (g_strcmp0(property_name, "SubtitleID") == 0) {
-    int sid;
-    mpv_get_property(ud->mpv, "sid", MPV_FORMAT_INT64, &sid);
-    ret = g_variant_new_int64(sid);
+    char *sid;
+    mpv_get_property(ud->mpv, "sid", MPV_FORMAT_STRING, &sid);
+    ret = g_variant_new_string(sid);
 
   } else if (g_strcmp0(property_name, "Volume") == 0) {
     double volume;
@@ -804,6 +798,14 @@ static gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
   } else if (g_strcmp0(property_name, "Shuffle") == 0) {
     int shuffle = g_variant_get_boolean(value);
     mpv_set_property(ud->mpv, "playlist-shuffle", MPV_FORMAT_FLAG, &shuffle);
+
+  } else if (g_strcmp0(property_name, "AudioID") == 0) {
+    const char *aid = g_variant_get_string(value, NULL);
+    mpv_set_property(ud->mpv, "aid", MPV_FORMAT_STRING, &aid);
+
+  } else if (g_strcmp0(property_name, "SubtitleID") == 0) {
+    const char *sid = g_variant_get_string(value, NULL);
+    mpv_set_property(ud->mpv, "sid", MPV_FORMAT_STRING, &sid);
 
   } else if (g_strcmp0(property_name, "Volume") == 0) {
     double volume = g_variant_get_double(value);
