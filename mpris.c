@@ -41,6 +41,9 @@ static const char *introspection_xml =
     "    <method name=\"SetAudioID\">\n"
     "      <arg type=\"i\" name=\"ID\" direction=\"in\"/>\n"
     "    </method>\n"
+    "    <method name=\"SetSubtitleID\">\n"
+    "      <arg type=\"i\" name=\"ID\" direction=\"in\"/>\n"
+    "    </method>\n"
     "    <method name=\"SetPosition\">\n"
     "      <arg type=\"o\" name=\"TrackId\" direction=\"in\"/>\n"
     "      <arg type=\"x\" name=\"Offset\" direction=\"in\"/>\n"
@@ -621,6 +624,17 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
     g_dbus_method_invocation_return_value(invocation, NULL);
 
     g_free(aid_str);
+  } else if (g_strcmp0(method_name, "SetSubtitleID") == 0) {
+    int sid;
+    g_variant_get(parameters, "(i)", &sid);
+
+    char *sid_str = g_strdup_printf("%d", sid);
+    const char *cmd[] = {"set", "sub", sid_str, NULL};
+
+    mpv_command_async(ud->mpv, 0, cmd);
+    g_dbus_method_invocation_return_value(invocation, NULL);
+
+    g_free(sid_str);
   } else if (g_strcmp0(method_name, "OpenUri") == 0) {
     char *uri;
     g_variant_get(parameters, "(&s)", &uri);
